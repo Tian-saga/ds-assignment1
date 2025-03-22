@@ -18,10 +18,6 @@ export class ApiStack extends Stack {
     // Create a new REST API
     const api = new RestApi(this, 'ThingsApi', {
       restApiName: 'Things Service',
-      deployOptions: {
-        loggingLevel: MethodLoggingLevel.INFO,
-        dataTraceEnabled: true,
-      },
     });
 
     // Add a resource: /things
