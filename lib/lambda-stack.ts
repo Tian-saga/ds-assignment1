@@ -12,21 +12,33 @@ interface LambdaStackProps extends StackProps {
 
 export class LambdaStack extends Stack {
   public readonly postLambda: Function;
+  public readonly getLambda: Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
 
-    // Here we define a standard Lambda function using a plain JS file (post.js)
+    // "PostThingFunction" -> uses post.js
     this.postLambda = new Function(this, 'PostThingFunction', {
       runtime: Runtime.NODEJS_18_X,
-      handler: 'post.handler',
-      code: Code.fromAsset(path.join(__dirname, '../lambda')), // will look for "post.js"
+      handler: 'post.handler', // "post.js" -> exports.handler
+      code: Code.fromAsset(path.join(__dirname, '../lambda')), // We'll zip everything in /lambda
       environment: {
         TABLE_NAME: props.table.tableName,
       },
     });
 
-    // Grant read/write permissions on the DynamoDB table to this Lambda
+    // "GetThingFunction" -> uses get.js
+    this.getLambda = new Function(this, 'GetThingFunction', {
+      runtime: Runtime.NODEJS_18_X,
+      handler: 'get.handler', // "get.js" -> exports.handler
+      code: Code.fromAsset(path.join(__dirname, '../lambda')),
+      environment: {
+        TABLE_NAME: props.table.tableName,
+      },
+    });
+
+    // Grant DynamoDB read/write permissions to POST, and read to GET
     props.table.grantReadWriteData(this.postLambda);
+    props.table.grantReadData(this.getLambda);
   }
 }

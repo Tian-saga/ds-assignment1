@@ -13,6 +13,8 @@ const databaseStack = new DatabaseStack(app, 'DatabaseStack');
 const lambdaStack = new LambdaStack(app, 'LambdaStack', {
   table: databaseStack.table,
 });
+
 new ApiStack(app, 'ApiStack', {
   postLambda: lambdaStack.postLambda,
+  getLambda: lambdaStack.getLambda, 
 });
