@@ -8,6 +8,7 @@ import { LambdaStack } from './lambda-stack';
 interface ApiStackProps extends StackProps {
   postLambda: LambdaStack['postLambda'];
   getLambda: LambdaStack['getLambda'];
+  putLambda: LambdaStack['putLambda'];
 }
 
 export class ApiStack extends Stack {
@@ -28,12 +29,16 @@ export class ApiStack extends Stack {
     });
 
     // GET /things/{pk}/{sk}
-    // Remove any old {id} route to avoid sibling conflict
     const pkResource = thingsResource.addResource('{pk}');
     const skResource = pkResource.addResource('{sk}');
 
     skResource.addMethod('GET', new LambdaIntegration(props.getLambda), {
       apiKeyRequired: true, 
+    });
+
+    // Add PUT
+    skResource.addMethod('PUT', new LambdaIntegration(props.putLambda), {
+    apiKeyRequired: true,
     });
 
     // Create usage plan and API key

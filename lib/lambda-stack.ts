@@ -13,6 +13,7 @@ interface LambdaStackProps extends StackProps {
 export class LambdaStack extends Stack {
   public readonly postLambda: Function;
   public readonly getLambda: Function;
+  public readonly putLambda: Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
@@ -37,8 +38,18 @@ export class LambdaStack extends Stack {
       },
     });
 
+    this.putLambda = new Function(this, 'PutThingFunction', {
+        runtime: Runtime.NODEJS_18_X,
+        handler: 'put.handler',    // "put.js" -> exports.handler
+        code: Code.fromAsset(path.join(__dirname, '../lambda')),
+        environment: {
+          TABLE_NAME: props.table.tableName,
+        },
+      });
+
     // Grant DynamoDB read/write permissions to POST, and read to GET
     props.table.grantReadWriteData(this.postLambda);
     props.table.grantReadData(this.getLambda);
+    props.table.grantReadWriteData(this.putLambda);
   }
 }
