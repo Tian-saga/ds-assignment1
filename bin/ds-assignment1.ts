@@ -18,4 +18,5 @@ new ApiStack(app, 'ApiStack', {
   postLambda: lambdaStack.postLambda,
   getLambda: lambdaStack.getLambda, 
   putLambda: lambdaStack.putLambda,
+  translateLambda: lambdaStack.translateLambda,
 });

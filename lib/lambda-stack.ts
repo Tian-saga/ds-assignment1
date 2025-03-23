@@ -5,6 +5,7 @@ import { Construct } from 'constructs';
 import { Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import * as path from 'path';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 interface LambdaStackProps extends StackProps {
   table: Table;
@@ -14,6 +15,7 @@ export class LambdaStack extends Stack {
   public readonly postLambda: Function;
   public readonly getLambda: Function;
   public readonly putLambda: Function;
+  public readonly translateLambda: Function;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
@@ -47,9 +49,29 @@ export class LambdaStack extends Stack {
         },
       });
 
+
+       // translateLambda
+    this.translateLambda = new Function(this, 'TranslateFunction', {
+        runtime: Runtime.NODEJS_18_X,
+        handler: 'translate.handler', // "translate.js" -> exports.handler
+        code: Code.fromAsset(path.join(__dirname, '../lambda')),
+        environment: {
+          TABLE_NAME: props.table.tableName,
+        },
+      });
+
+      this.translateLambda.addToRolePolicy(new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['translate:TranslateText',
+            'comprehend:DetectDominantLanguage',
+        ],
+        resources: ['*'], 
+      }));
+
     // Grant DynamoDB read/write permissions to POST, and read to GET
     props.table.grantReadWriteData(this.postLambda);
     props.table.grantReadData(this.getLambda);
     props.table.grantReadWriteData(this.putLambda);
+    props.table.grantReadWriteData(this.translateLambda);
   }
 }

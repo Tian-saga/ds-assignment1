@@ -9,6 +9,7 @@ interface ApiStackProps extends StackProps {
   postLambda: LambdaStack['postLambda'];
   getLambda: LambdaStack['getLambda'];
   putLambda: LambdaStack['putLambda'];
+  translateLambda: LambdaStack['translateLambda'];
 }
 
 export class ApiStack extends Stack {
@@ -48,5 +49,10 @@ export class ApiStack extends Stack {
       apiStages: [{ api, stage: api.deploymentStage }],
     });
     plan.addApiKey(apiKey);
+    const translationResource = skResource.addResource('translation');
+    translationResource.addMethod('GET', new LambdaIntegration(props.translateLambda), {
+      apiKeyRequired: true, 
+    });
+
   }
 }
