@@ -8,79 +8,112 @@ __Demo:__ (https://youtu.be/Rjxgrf-EAxU)
 
 State the context you chose for your web API and detail the attributes of the DynamoDB table items, e.g.
 
-Context: Movie Cast
+Context:
+For this assignment, I created a **DynamoDB table** called **ThingsTable**, storing records referred to as “things.” Each record includes:
 
 Table item attributes:
-+ MovieID - number  (Partition key)
-+ ActorID - number  (Sort Key)
-+ RoleName - string
-+ RoleDescription - string
-+ AwardsWon - List<string>
-+ etc
+- **PK** (string) – Partition key
+- **SK** (string) – Sort key
+- **description** (string)
+- **someNumber** (number)
+- **someBoolean** (boolean)
+- **translations** (map) – Stores cached translations keyed by language code
 
 ### App API endpoints.
 
-[ Provide a bullet-point list of the app's endpoints (excluding the Auth API) you have successfully implemented. ]
-e.g.
- 
-+ POST /thing - add a new 'thing'.
-+ GET /thing/{partition-key}/ - Get all the 'things' with a specified partition key.
-+ GEtT/thing/{partition-key}?attributeX=value - Get all the 'things' with a specified partition key value and its attributeX satisfying the condition .....
-+ etc
+Below are the endpoints I successfully implemented (excluding any separate authentication endpoints):
+
+1. **POST** `/things`  
+   - Creates a new item in DynamoDB.  
+   - Requires `x-api-key` for authorization.
+
+2. **GET** `/things/{pk}/{sk}`  
+   - Retrieves the item identified by partition key (`pk`) and sort key (`sk`).  
+   - Can optionally require `x-api-key`, depending on the configuration.
+
+3. **PUT** `/things/{pk}/{sk}`  
+   - Updates fields (such as `description`, `someNumber`, `someBoolean`) of an existing item.  
+   - Requires `x-api-key`.
+
+4. **GET** `/things/{pk}/{sk}/translation?lang=xx`  
+   - Uses Amazon Translate to convert the `description` field to language `xx` and caches the result in DynamoDB.  
+   - Requires `x-api-key`.
+
 
 
 ### Features.
 
-#### Translation persistence (if completed)
+#### Translation persistence 
 
-[ Explain briefly your solution to the translation persistence requirement - no code excerpts required. Show the structure of a table item that includes review translations, e.g.
+I store translation caches in the `translations` map attribute within each item. For example:
 
-+ MovieID - number  (Partition key)
-+ ActorID - number  (Sort Key)
-+ RoleName - string
-+ RoleDescription - string
-+ AwardsWon - List<string>
-+ Translations - ?
-]
-
-#### Custom L2 Construct (if completed)
-
-[State briefly the infrastructure provisioned by your custom L2 construct. Show the structure of its input props object and list the public properties it exposes, e.g. taken from the Cognito lab,
-
-Construct Input props object:
-~~~
-type AuthApiProps = {
- userPoolId: string;
- userPoolClientId: string;
+```json
+{
+  "PK": "001",
+  "SK": "001",
+  "description": "Hello from item 001",
+  "someNumber": 123,
+  "someBoolean": true,
+  "translations": {
+    "fr": "Bonjour de l'item 001"
+  }
 }
-~~~
-Construct public properties
-~~~
-export class MyConstruct extends Construct {
- public  PropertyName: type
- etc.
-~~~
- ]
+
+#### Custom L2 Construct 
+
+Not complete
 
 #### Multi-Stack app (if completed)
 
-[Explain briefly the stack composition of your app - no code excerpts required.]
+Yes, the application is composed of multiple AWS CDK stacks:
+
+DatabaseStack: Creates the DynamoDB table (ThingsTable) with PK and SK
+LambdaStack: Defines multiple Lambda functions (POST, GET, PUT, and translation), granting permissions for DynamoDB and Amazon Translate
+ApiStack: Creates the API Gateway, routes each Lambda function, and configures an API Key and Usage Plan
 
 #### Lambda Layers (if completed)
 
-[Explain briefly where you used the Layers feature of the AWS Lambda service - no code excerpts required.]
+Not complete
 
 
-#### API Keys. (if completed)
+#### API Keys. 
 
-[Explain briefly how to implement API key authentication to protect API Gateway endpoints. Include code excerpts from your app to support this. ][]
+
+To protect certain API endpoints in API Gateway, I implemented API key authentication. Here is a brief explanation with relevant code excerpts:
+
+1. **Create an API Key and Usage Plan**: In `ApiStack`, an `ApiKey` resource is generated and attached to a `UsagePlan`. Only requests that provide the correct key in the `x-api-key` header will be allowed on protected endpoints.
+
+2. **Example Code**:
 
 ~~~ts
-// This is a code excerpt markdown 
-let foo : string = 'Foo'
-console.log(foo)
+import { ApiKey, UsagePlan, UsagePlanProps } from 'aws-cdk-lib/aws-apigateway';
+
+// Create the API Key
+const apiKey = new ApiKey(this, 'ThingsApiKey');
+
+// Create a Usage Plan
+const plan = new UsagePlan(this, 'UsagePlan', {
+  name: 'BasicUsagePlan',
+  apiStages: [
+    {
+      api,              // Reference to the RestApi or HttpApi
+      stage: api.deploymentStage,
+    },
+  ],
+});
+plan.addApiKey(apiKey);
+
+// Example: Protecting the POST /things route:
+thingsResource.addMethod('POST', new LambdaIntegration(props.postLambda), {
+  apiKeyRequired: true,
+});
 ~~~
 
-###  Extra (If relevant).
+3. **Client Usage**:  
+Clients must include the following header in their requests:
+x-api-key: <the-api-key-value>
+Any request missing this header (or providing an invalid key) will receive a `403 Forbidden` response.
 
-[ State any other aspects of your solution that use CDK/serverless features not covered in the lectures ]
+
+###  Extra (If relevant).
+No additional CDK/serverless features 
